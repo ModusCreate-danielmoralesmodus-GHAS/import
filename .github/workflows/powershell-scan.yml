@@ -22,15 +22,21 @@ jobs:
       - name: Run PSScriptAnalyzer and create SARIF
         shell: pwsh
         run: |
-          # Install the required modules
-          Install-Module -Name PSScriptAnalyzer -Force
-          Install-Module -Name Microsoft.CodeAnalysis.Sarif.PowerShell -Force
+          # 1. Explicitly trust the PowerShell Gallery to fix "No match was found" error
+          Write-Host "Setting PSGallery as trusted..."
+          Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted
+          
+          # 2. Install the required modules
+          Write-Host "Installing PSScriptAnalyzer..."
+          Install-Module -Name PSScriptAnalyzer -Force -ErrorAction Stop
+          
+          Write-Host "Installing SARIF converter module..."
+          Install-Module -Name Microsoft.CodeAnalysis.Sarif.PowerShell -Force -ErrorAction Stop
           
           $sarifFile = "psscriptanalyzer-results.sarif"
           
-          # Run the analyzer and pipe the results to the SARIF converter.
-          # We use '-ErrorAction SilentlyContinue' to ensure the script
-          # ALWAYS continues, even when it finds errors.
+          # 3. Run the scan and pipe the results to the SARIF converter.
+          Write-Host "Running scan..."
           Invoke-ScriptAnalyzer -Path ${{ github.workspace }} -Recurse -ErrorAction SilentlyContinue | ConvertTo-SarifLog -OutputFile $sarifFile -ErrorAction SilentlyContinue
           
           Write-Host "Scan complete. SARIF file generated."
