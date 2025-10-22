@@ -20,34 +20,30 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run PSScriptAnalyzer and create SARIF
-        shell: pwsh
-        run: |
-          # 1. Force-reinstall PowerShellGet to fix the underlying package providers
-          Write-Host "--- Forcefully reinstalling PowerShellGet ---"
-          Install-Module -Name PowerShellGet -Force -SkipPublisherCheck -AllowClobber -ErrorAction Stop
+  shell: pwsh
+  run: |
+    Write-Host "--- Ensuring PSGallery is trusted ---"
+    if (-not (Get-PSRepository -Name 'PSGallery' -ErrorAction SilentlyContinue)) {
+      Register-PSRepository -Default -ErrorAction Stop
+    }
+    Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted
 
-          # 2. Ensure PSGallery is registered and trusted
-          Write-Host "--- Registering and trusting PSGallery ---"
-          if (-not (Get-PSRepository -Name 'PSGallery' -ErrorAction SilentlyContinue)) {
-            Write-Host "PSGallery not found. Registering..."
-            Register-PSRepository -Default -ErrorAction Stop
-          }
-          Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted
-          
-          # 3. Install the required modules
-          Write-Host "--- Installing PSScriptAnalyzer ---"
-          Install-Module -Name PSScriptAnalyzer -Force -ErrorAction Stop
-          
-          Write-Host "--- Installing SARIF converter module ---"
-          Install-Module -Name Microsoft.CodeAnalysis.Sarif.PowerShell -Force -ErrorAction Stop
-          
-          $sarifFile = "psscriptanalyzer-results.sarif"
-          
-          # 4. Run the scan and pipe the results to the SARIF converter.
-          Write-Host "--- Running scan... ---"
-          Invoke-ScriptAnalyzer -Path ${{ github.workspace }} -Recurse -ErrorAction SilentlyContinue | ConvertTo-SarifLog -OutputFile $sarifFile -ErrorAction SilentlyContinue
-          
-          Write-Host "--- Scan complete. SARIF file generated. ---"
+    Write-Host "--- Updating PowerShellGet and PSScriptAnalyzer ---"
+    Update-Module -Name PowerShellGet -Force -ErrorAction SilentlyContinue
+    if (-not (Get-Module -ListAvailable -Name PSScriptAnalyzer)) {
+      Install-Module -Name PSScriptAnalyzer -Force -ErrorAction Stop
+    } else {
+      Update-Module -Name PSScriptAnalyzer -Force -ErrorAction SilentlyContinue
+    }
+
+    $sarifFile = Join-Path $env:GITHUB_WORKSPACE "psscriptanalyzer-results.sarif"
+
+    Write-Host "--- Running PSScriptAnalyzer ---"
+    Invoke-ScriptAnalyzer -Path $env:GITHUB_WORKSPACE -Recurse -ReportSummary `
+      -OutFormat SARIF -OutFile $sarifFile -ErrorAction Continue
+
+    Write-Host "--- Scan complete. SARIF file generated. ---"
+
 
       - name: Upload SARIF to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v3
