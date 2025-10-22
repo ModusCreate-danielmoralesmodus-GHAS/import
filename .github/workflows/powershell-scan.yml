@@ -43,17 +43,19 @@ jobs:
             Update-Module -Name PSScriptAnalyzer -Force -ErrorAction SilentlyContinue
           }
 
-          Write-Host "--- Installing ConvertToSARIF module ---"
+          Write-Host "--- Installing/Updating ConvertToSARIF module ---"
           if (-not (Get-Module -ListAvailable -Name ConvertToSARIF)) {
             Install-Module -Name ConvertToSARIF -Force -ErrorAction Stop
           } else {
             Update-Module -Name ConvertToSARIF -Force -ErrorAction SilentlyContinue
           }
           
+          Write-Host "--- Importing ConvertToSARIF module ---"
+          Import-Module ConvertToSARIF -Force
+          
           $sarifFile = Join-Path $env:GITHUB_WORKSPACE "psscriptanalyzer-results.sarif"
           Write-Host "--- Running PSScriptAnalyzer and piping to ConvertTo-SARIF ---"
           
-          # Corrected command: Pipe results to ConvertTo-SARIF
           Invoke-ScriptAnalyzer -Path $env:GITHUB_WORKSPACE -Recurse -ReportSummary -ErrorAction Continue | ConvertTo-SARIF -FilePath $sarifFile
 
           Write-Host "--- Scan complete. SARIF file generated at: $sarifFile ---"
