@@ -19,21 +19,21 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Run PSScriptAnalyzer
-        uses: microsoft/psscriptanalyzer-action@v1.0
-        with:
-          # Path to scan. '.' is the root of your repo.
-          path: '.'
+      - name: Run PSScriptAnalyzer and create SARIF
+        shell: pwsh
+        run: |
+          # Install the required modules
+          Install-Module -Name PSScriptAnalyzer -Force
+          Install-Module -Name Microsoft.CodeAnalysis.Sarif.PowerShell -Force
           
-          # Scan all subfolders
-          recurse: true
+          $sarifFile = "psscriptanalyzer-results.sarif"
           
-          # Name of the SARIF file to create
-          output: 'psscriptanalyzer-results.sarif'
+          # Run the analyzer and pipe the results to the SARIF converter.
+          # We use '-ErrorAction SilentlyContinue' to ensure the script
+          # ALWAYS continues, even when it finds errors.
+          Invoke-ScriptAnalyzer -Path ${{ github.workspace }} -Recurse -ErrorAction SilentlyContinue | ConvertTo-SarifLog -OutputFile $sarifFile -ErrorAction SilentlyContinue
           
-          # --- THIS IS THE CHANGE ---
-          # false = Do NOT fail the step if issues are found
-          enableExit: false
+          Write-Host "Scan complete. SARIF file generated."
 
       - name: Upload SARIF to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v3
