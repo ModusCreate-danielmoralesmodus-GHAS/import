@@ -22,10 +22,10 @@ jobs:
       - name: Run PSScriptAnalyzer and create SARIF
         shell: pwsh
         run: |
-          # 1. Ensure NuGet provider is installed and up-to-date
-          Write-Host "--- Installing/Updating NuGet Package Provider ---"
-          Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -ErrorAction Stop
-          
+          # 1. Force-reinstall PowerShellGet to fix the underlying package providers
+          Write-Host "--- Forcefully reinstalling PowerShellGet ---"
+          Install-Module -Name PowerShellGet -Force -SkipPublisherCheck -AllowClobber -ErrorAction Stop
+
           # 2. Ensure PSGallery is registered and trusted
           Write-Host "--- Registering and trusting PSGallery ---"
           if (-not (Get-PSRepository -Name 'PSGallery' -ErrorAction SilentlyContinue)) {
