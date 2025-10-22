@@ -15,7 +15,6 @@ jobs:
   analyze:
     name: Run PSScriptAnalyzer Scan
     runs-on: ubuntu-latest
-
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
@@ -44,11 +43,18 @@ jobs:
             Update-Module -Name PSScriptAnalyzer -Force -ErrorAction SilentlyContinue
           }
 
+          Write-Host "--- Installing ConvertToSARIF module ---"
+          if (-not (Get-Module -ListAvailable -Name ConvertToSARIF)) {
+            Install-Module -Name ConvertToSARIF -Force -ErrorAction Stop
+          } else {
+            Update-Module -Name ConvertToSARIF -Force -ErrorAction SilentlyContinue
+          }
+          
           $sarifFile = Join-Path $env:GITHUB_WORKSPACE "psscriptanalyzer-results.sarif"
-
-          Write-Host "--- Running PSScriptAnalyzer ---"
-          Invoke-ScriptAnalyzer -Path $env:GITHUB_WORKSPACE -Recurse -ReportSummary `
-            -OutFormat SARIF -OutFile $sarifFile -ErrorAction Continue
+          Write-Host "--- Running PSScriptAnalyzer and piping to ConvertTo-SARIF ---"
+          
+          # Corrected command: Pipe results to ConvertTo-SARIF
+          Invoke-ScriptAnalyzer -Path $env:GITHUB_WORKSPACE -Recurse -ReportSummary -ErrorAction Continue | ConvertTo-SARIF -FilePath $sarifFile
 
           Write-Host "--- Scan complete. SARIF file generated at: $sarifFile ---"
 
