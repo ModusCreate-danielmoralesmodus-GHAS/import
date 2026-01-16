@@ -1,0 +1,4 @@
+name: Generate Security Report
+uses: advanced-security/security-report-action@main
+with:
+  token: ${{ secrets.SECURITY_TOKEN }}
