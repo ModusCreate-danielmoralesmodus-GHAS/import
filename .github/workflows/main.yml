@@ -27,7 +27,7 @@ jobs:
     
     - name: Upload artifact
       if: steps.count_alerts.outputs.created_alerts_count > 0 || steps.count_alerts.outputs.closed_alerts_count > 0
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v6
       with:
         name: my-artifact
         path: |
